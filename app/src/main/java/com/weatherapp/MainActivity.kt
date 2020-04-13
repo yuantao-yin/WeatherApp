@@ -20,9 +20,11 @@ import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
 import com.karumi.dexter.listener.PermissionRequest
 import com.karumi.dexter.listener.multi.MultiplePermissionsListener
+import com.weatherapp.models.WeatherResponse
+import com.weatherapp.network.WeatherService
 import com.weatherapp.utils.Constants
+import retrofit.*
 
-// TODO (STEP 1 : After creating a project as we are developing a weather app kindly visit the link below.)
 // OpenWeather Link : https://openweathermap.org/api
 
 /**
@@ -130,13 +132,48 @@ class MainActivity : AppCompatActivity() {
             mLongitude = mLastLocation.longitude
             Log.e("Current Longitude", "$mLongitude")
 
-            getLocationWeatherDetails()
+            getLocationWeatherDetails(mLatitude, mLongitude)
         }
     }
 
-    private fun getLocationWeatherDetails() {
+    private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
         if(Constants.isNetworkAvailable(this)) {
-            Log.i("MainActivity", "Has internet connection")
+            Log.i("MainActivity", "Start retrofit call")
+            val retrofit: Retrofit = Retrofit.Builder()
+                .baseUrl(Constants.BASE_URL)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build()
+
+            val service: WeatherService = retrofit.create(WeatherService::class.java)
+            val listCall: Call<WeatherResponse> = service.getWeather(
+                latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
+            )
+            listCall.enqueue(object: Callback<WeatherResponse>{
+                override fun onFailure(t: Throwable?) {
+
+                }
+
+                override fun onResponse(response: Response<WeatherResponse>?, retrofit: Retrofit?) {
+                    if(response!!.isSuccess) {
+                        val weatherList: WeatherResponse = response.body()
+                        Log.i("Respose Result: " , "$weatherList")
+                    } else {
+                        when (response.code()) {
+                            400 -> {
+                                Log.e("Error 400", "Bad Request")
+                            }
+                            404 -> {
+                                Log.e("Error 404", "Not Found")
+                            }
+                            else -> {
+                                Log.e("Error", "Generic Error")
+                            }
+                        }
+                    }
+                }
+
+            })
+
         } else {
             Log.i("MainActivity", "No internet connection")
         }
