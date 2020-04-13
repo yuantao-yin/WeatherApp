@@ -8,12 +8,16 @@ import android.content.Intent
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import com.google.android.gms.location.*
 import com.karumi.dexter.Dexter
@@ -97,6 +101,21 @@ class MainActivity : AppCompatActivity() {
         // END
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_refresh -> {
+                requestLocationData()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
     private fun showRationalDialogForPermissions() {
         AlertDialog.Builder(this)
             .setMessage("It Looks like you have turned off permissions required for this feature. It can be enabled under Application Settings")
@@ -135,15 +154,15 @@ class MainActivity : AppCompatActivity() {
 
             val mLastLocation: Location = locationResult.lastLocation
             mLatitude = mLastLocation.latitude
-            Log.e("Current Latitude", "$mLatitude")
+            Log.i("Current Latitude", "$mLatitude")
             mLongitude = mLastLocation.longitude
-            Log.e("Current Longitude", "$mLongitude")
+            Log.i("Current Longitude", "$mLongitude")
 
-            getLocationWeatherDetails(mLatitude, mLongitude)
+            getLocationWeatherDetails()
         }
     }
 
-    private fun getLocationWeatherDetails(latitude: Double, longitude: Double) {
+    private fun getLocationWeatherDetails() {
         if(Constants.isNetworkAvailable(this)) {
             Log.i("MainActivity", "Start retrofit call")
             val retrofit: Retrofit = Retrofit.Builder()
@@ -153,7 +172,7 @@ class MainActivity : AppCompatActivity() {
 
             val service: WeatherService = retrofit.create(WeatherService::class.java)
             val listCall: Call<WeatherResponse> = service.getWeather(
-                latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
+                mLatitude, mLongitude, Constants.METRIC_UNIT, Constants.APP_ID
             )
 
             showCustomProgressDialog()
@@ -217,6 +236,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun setupUI(weatherList: WeatherResponse) {
         for(i in weatherList.weather.indices){
             tv_main.text = weatherList.weather[i].main
@@ -231,6 +251,24 @@ class MainActivity : AppCompatActivity() {
             tv_country.text = weatherList.sys.country
             tv_sunrise_time.text = unixTime(weatherList.sys.sunrise.toLong())
             tv_sunset_time.text = unixTime(weatherList.sys.sunset.toLong())
+
+            // Here we update the main icon
+            when (weatherList.weather[i].icon) {
+                "01d" -> iv_main.setImageResource(R.drawable.sunny)
+                "02d" -> iv_main.setImageResource(R.drawable.cloud)
+                "03d" -> iv_main.setImageResource(R.drawable.cloud)
+                "04d" -> iv_main.setImageResource(R.drawable.cloud)
+                "04n" -> iv_main.setImageResource(R.drawable.cloud)
+                "10d" -> iv_main.setImageResource(R.drawable.rain)
+                "11d" -> iv_main.setImageResource(R.drawable.storm)
+                "13d" -> iv_main.setImageResource(R.drawable.snowflake)
+                "01n" -> iv_main.setImageResource(R.drawable.cloud)
+                "02n" -> iv_main.setImageResource(R.drawable.cloud)
+                "03n" -> iv_main.setImageResource(R.drawable.cloud)
+                "10n" -> iv_main.setImageResource(R.drawable.cloud)
+                "11n" -> iv_main.setImageResource(R.drawable.rain)
+                "13n" -> iv_main.setImageResource(R.drawable.snowflake)
+            }
         }
     }
 
