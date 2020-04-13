@@ -1,6 +1,7 @@
 package com.weatherapp
 
 import android.Manifest
+import android.app.Dialog
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -38,6 +39,8 @@ class MainActivity : AppCompatActivity() {
     private var mLatitude: Double = 0.0
     // A global variable for Current Longitude
     private var mLongitude: Double = 0.0
+    // A global variable for Progress Dialog
+    private var mProgressDialog: Dialog? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -148,6 +151,9 @@ class MainActivity : AppCompatActivity() {
             val listCall: Call<WeatherResponse> = service.getWeather(
                 latitude, longitude, Constants.METRIC_UNIT, Constants.APP_ID
             )
+
+            showCustomProgressDialog()
+
             listCall.enqueue(object: Callback<WeatherResponse>{
                 override fun onFailure(t: Throwable?) {
 
@@ -155,9 +161,11 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onResponse(response: Response<WeatherResponse>?, retrofit: Retrofit?) {
                     if(response!!.isSuccess) {
+                        hideProgressDialog()
                         val weatherList: WeatherResponse = response.body()
                         Log.i("Respose Result: " , "$weatherList")
                     } else {
+                        hideProgressDialog()
                         when (response.code()) {
                             400 -> {
                                 Log.e("Error 400", "Bad Request")
@@ -176,6 +184,29 @@ class MainActivity : AppCompatActivity() {
 
         } else {
             Log.i("MainActivity", "No internet connection")
+        }
+    }
+
+    /**
+     * Method is used to show the Custom Progress Dialog.
+     */
+    private fun showCustomProgressDialog() {
+        mProgressDialog = Dialog(this)
+
+        /*Set the screen content from a layout resource.
+        The resource will be inflated, adding all top-level views to the screen.*/
+        mProgressDialog!!.setContentView(R.layout.dialog_custom_progress)
+
+        //Start the dialog and display it on screen.
+        mProgressDialog!!.show()
+    }
+
+    /**
+     * This function is used to dismiss the progress dialog if it is visible to user.
+     */
+    private fun hideProgressDialog() {
+        if (mProgressDialog != null) {
+            mProgressDialog!!.dismiss()
         }
     }
 
